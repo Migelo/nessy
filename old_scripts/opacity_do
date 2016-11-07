@@ -1,0 +1,18 @@
+#!/bin/bash
+i=$1
+
+source $COSI_BIN/helper_scripts
+
+#trap error ERR
+
+if [[ ! -e IT${i} ]]; then
+  [[ -e CARDS.LOPA ]] || echo "XLAM1  9
+XLAM2 99
+DIM $(echo $(grep -1 '^ND *$' ../hminus/IT0/POPNUM | tail -1))
+DLAM 10
+INPUT PATH ../fioss/IT0/lopa/
+OUTPUT PATH IT0/" > CARDS.LOPA
+  sed -i "s/^\(INPUT PATH.*\)IT[0-9]*\/lopa/\1IT${i}\/lopa/;s/OUTPUT PATH IT[0-9]*/OUTPUT PATH IT${i}/" CARDS.LOPA
+  mkdir IT${i}
+  opacity
+fi

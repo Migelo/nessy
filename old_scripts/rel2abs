@@ -1,0 +1,8 @@
+#!/bin/bash 
+echo Directory $@
+echo
+find $@ -type l | xargs -IFOO echo "FOO $(readlink -f FOO)" 
+
+find $@ -type l | xargs -iFOO perl -mFile::Spec -e 'print File::Spec->abs2rel( +shift),"\n"'  $(readlink -f FOO)
+find $@ -type l | xargs -iFOO perl -mFile::Spec -e 'print File::Spec->rel2abs(),"\n"'  FOO
+

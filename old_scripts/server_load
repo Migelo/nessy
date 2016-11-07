@@ -1,0 +1,15 @@
+#!/bin/bash
+SERVER="knecht magd kegel"
+USER=`whoami`
+#echo $USER | grep '^PMODWRC'  || USER="PMODWRC+$USER"
+USER=$(echo $USER | tr '\\@' '+' )
+echo $USER
+for A in $SERVER; do
+echo "###################### $A #########################"
+ssh ${USER}@$A 'export TERM=xterm; cosi_status'
+done
+echo '#####################################################################'
+for A in $SERVER; do
+echo -e "$A:\t `ssh ${USER}@$A 'cat /proc/loadavg'`"
+done
+

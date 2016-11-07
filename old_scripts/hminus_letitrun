@@ -1,0 +1,61 @@
+#!/bin/bash
+
+if [[ $1 == '--help' ]]; then
+  echo "Usage: $0 HMINUS_DIRECTORY [ START ] [MAX_RUN ] [ FIRSTRUN ]
+  repeatedly run hminus.exe, copying the POPNUM to OLDMODEL and make a backup to HMINUS_DIRECTORY-\"X\"
+  If START is set, set the first X to START
+  If FIRSTRUN is set, do a firstrun w/o an OLDSTART
+"
+exit
+fi
+
+echo $1 $2 $3
+RUN_DIR=`echo "$1" | grep -o '^.*[^/]'`
+START=${2:-1}
+MAX_RUN=${3:-9}
+FIRSTRUN=$4
+echo "RUNDIR=\"${RUN_DIR}\" START=\"${START}\" MAX_RUN=\"${MAX_RUN}\" FIRSTRUN=\"${FIRSTRUN}\""
+
+if [[ "" == $RUN_DIR ]]; then
+  echo "Missing Parameter: hminusRunDir"
+  exit
+fi
+
+if [[ $FIRSTRUN != "" ]]; then
+  echo First Run
+  pushd .
+  cd $RUN_DIR
+  echo wrstart > fort.99
+  echo "`date`: let it run" >> model-all.out
+  hminus
+  RET=$?
+  if [[ -not $RET ]]; then
+     echo "`basename $0`: HMINUS FIRSTRUN failed with Exit Code $RET"
+     exit $RET
+  fi
+
+  echo OLDSTART >> CARDS
+  popd
+fi
+
+while (( $START < $MAX_RUN )); do
+  mkdir "${RUN_DIR}-${START}"
+  cp -f   ${RUN_DIR}/* "${RUN_DIR}-$START"
+  let START=START+1
+  pushd .;
+  cd $RUN_DIR;
+  cp POPNUM OLDMODEL
+  echo wrstart > fort.99
+  echo "`date`: let it run" >> model-all.out
+  
+
+  hminus
+  RET=$?
+  if [[ -not $RET ]]; then
+     echo "`basename $0`: HMINUS failed with Exit Code $RET"
+     exit $RET
+  fi
+
+
+  popd;
+done

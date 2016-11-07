@@ -1,0 +1,87 @@
+#!/bin/bash
+####################
+## run the whole cosi code
+## --- Arguments ---
+## 1: Maxmimum number of iterations n
+## 2: Start with iteration number k
+JOB_MAX=$1
+JOB_START=${2:-0}
+PROG=cosi_full
+WWD=`pwd`;
+function execIfExist(){
+if  [[ -e $1 ]]; then
+  echo "$PROG: Executing $1:"
+  chmod +x $1 
+  source $1
+fi
+}
+
+source $COSI_BIN/helper_scripts
+trap error ERR
+
+echo JOB_START=$JOB_START
+echo JOB_MAX=$JOB_MAX
+
+for (( i=JOB_START;i<JOB_MAX;i++)); do
+### HMINUS run
+cd $WWD
+echo "$PROG: $WWD: `date`: Starting COSI:HMINUS $i"
+if [[ ! -e hminus/IT$i ]]; then 
+  hminus_prepare $i 
+
+  cd $WWD/hminus/IT$i
+
+  execIfExist $WWD/scripts/hminus.pre $i
+  execIfExist $WWD/scripts/hminus-$i.pre 
+  echo "$PROG: Executing hminus:"
+  ./hminus.exe $i `basename $WWD` &> model.out
+  execIfExist ./scripts/hminus.post $i
+  execIfExist ./scripts/hminus-$i.post 
+else
+  echo "Directory hminus/IT$i exists already"
+fi
+if [[ ! -e fioss/IT$i ]]; then 
+  ### FIOSS run
+  echo "cosi_full: $WWD: `date`: Starting COSI:FIOSS $i"
+  cd $WWD
+  fioss_prepare $i
+
+  echo "$PROG: Copy CARDS.TEMPLATE to fioss working dir:"
+  [[ -e fioss/CARDS.TEMPLATE       ]] && cp -f fioss/CARDS.TEMPLATE       fioss/IT${i}/CARDS.TEMPLATE
+  [[ -e fioss/CARDS.FIOSS.TEMPLATE ]] && cp -f fioss/CARDS.FIOSS.TEMPLATE fioss/IT{$i}/CARDS.TEMPLATE
+
+
+  cd fioss/IT$i
+  execIfExist $WWD/scripts/fioss.pre $i
+  execIfExist $WWD/scripts/fioss-$i.pre 
+
+  echo "$PROG: Executing fioss:"
+  fioss_do &> model.out 
+  cd $WWD
+
+  execIfExist ./scripts/fioss.post
+  execIfExist ./scripts/fioss-$i.post
+else
+  echo "Fioss Directory already exist"
+fi
+### opacities
+echo "cosi_full: $WWD: `date`: Starting COSI:OPACITY $i"
+if [[ ! -e $WWD/lbkg/IT${i} ]]; then
+  cd $WWD/lbkg
+  [[ -e CARDS.LOPA ]] || echo "XLAM1  9
+XLAM2 199
+DIM $(echo $(grep -1 '^ND *$' $WWD/hminus/IT0/POPNUM | tail -1))
+DLAM 10
+INPUT PATH ../fioss/IT0/lopa/
+OUTPUT PATH IT0/" > CARDS.LOPA
+  sed -i "s/^\(INPUT PATH.*\)IT[0-9]*\/lopa/\1IT${i}\/lopa/;s/OUTPUT PATH IT[0-9]*/OUTPUT PATH IT${i}/" CARDS.LOPA
+  mkdir IT${i}
+  execIfExist $WWD/scripts/opacity.pre $i
+  execIfExist $WWD/scripts/opacity-$i.pre 
+  opacity > opacity-${i}.out && echo "Opacity $i OK" || echo "Opacity $i failed"
+  execIfExist $WWD/scripts/opacity.post $i
+  execIfExist $WWD/scripts/opacity-$i.post
+else
+  echo "Opacity Directory already exist"
+fi
+done

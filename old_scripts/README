@@ -1,0 +1,42 @@
+cosi scripts
+
+The Variable COSI_BIN must be set and pointed to this directory. 
+
+
+cosi_project_prepare
+cosi_status:		    
+		Displays the status of the cosi programms.
+cplink_dir  old_dir suffix  
+		Make a link of all the fioss run files to a new directory, old_dir.suffix
+fioss_check_frequencies   START STEP STOP SUFFIX [lopa] DIRS[.]
+		check if the files [START:STEP:STOP].SUFFIX exist in the directories DIRS.
+		DIRS default to current directory, SUFFIX to lopa
+
+fioss_check_frequencies_ok  START STEP STOP     (obsolete with new fioss_do_*)
+		check if the files fioss-[START:STEP:STOP].out ends with O.K.
+
+fioss_cosi515fmht2_C_micha
+		
+fioss_do-single START[900] STEP[2] STOP[10000]
+		Run the fioss8.exe without PFIRST,PLAST. Creates a new directory output. 
+		The output files will be deleted if the exit status of fioss8.exe is 0.
+
+fioss_do START[900] STEP[10] STOP[20000] 
+                Run parallel fioss8.exe without PFIRST,PLAST. Creates a new directory output.
+                The output files will be deleted if the exit status of fioss8.exe is 0.
+
+fioss_do_mu START STEP STOP MU
+		Run the fioss8.exe with PFIRST,PLAST. Creates the  directories output, lopa, mdisp, title
+		The output files will be deleted if the exit status of fioss8.exe is 0.
+
+fioss_prepare
+		Prepare a fioss directory based on fioss.settings
+fioss_stopbypid PID
+		stops the fioss run cleanly by `touch (PID-DIR)/stop
+hminus_letitrun
+hminus_prepare
+waitforpid: Argument: PID. Waits for the given pid to finish. (e.g. waitforpid 1 will never finish)
+
+
+helper_scripts: scripts used by the programms
+

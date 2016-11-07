@@ -1,0 +1,90 @@
+#!/bin/bash
+#****************************************************************
+### VARIABLES
+function error_ifunset() {
+  ERRVAR=""
+  for A in $@; do
+    [[ `getVar $A` == "" ]] &&  ERRVAR="$ERRVAR $A"
+  done
+  [[ $ERRVAR == "" ]] ||  error "Variable(s)$ERRVAR is/are not set"
+}
+
+if [[ "$0" =~ '(^-)|(/bin/)bash' ]]; then
+  echo "Script must be called, not sourced!"
+else
+[[ "$COSI_BIN" == "" ]] && echo "Variable COSI_BIN must be set"
+source $COSI_BIN/helper_scripts
+trap error ERR
+
+source hminus.settings
+
+[[ -e hminus-fioss.settings ]] && source hminus-fioss.settings
+
+
+THIS_SCRIPT=$0
+echo "================= DIRECTORIES ====================
+BASE_DIR      = ${BASE_DIR}
+DATA_DIR      = ${DATA_DIR}
+DIR_EXE       = ${DIR_EXE}
+DATOM_FILE    = ${DATOM_FILE}
+FGRID_FILE    = ${FGRID_FILE}
+FALVD_FILE    = ${FALVD_FILE}
+CROSS_SECTION_FILES = ${CROSS_SECTION_FILES}
+RUN_DIR       = ${RUN_DIR}
+ORIG_SRC      = ${ORIG_SRC}"
+[[ -e ${RUN_DIR} ]] && error "Run Dir already exist"
+
+error_ifunset CROSS_SECTION_FILES DATOM_FILE FGRID_FILE FALVD_FILE RUN_DIR ORIG_SRC 
+
+mkdir   ${RUN_DIR}
+cp        ${ORIG_EXE_FILE}   ${RUN_DIR}/
+pushd . &> /dev/null
+cd        ${ORIG_SRC}
+tar --exclude-vcs -czf  ${RUN_DIR}/cosi-src.tgz `find -iname '*.for' ` `find -iname 'Makefile*'` `find -iname *.f`
+popd    &> /dev/null
+
+cp        $THIS_SCRIPT       $RUN_DIR/
+cp        hminus.settings    $RUN_DIR
+[[ -e hminus-fioss.settings ]] && cp hminus-fioss.settings $RUN_DIR
+cd ${RUN_DIR}
+echo "------- Directory = `pwd` -----------------"
+pwd
+CHEMISTRY=${CHEMISTRY:-"/corona/sim/cosi/input/chemistry/chem.in"}
+cp $CHEMISTRY "./chem.in"
+
+cp ${DATOM_FILE} ./DATOM
+cp ${FGRID_FILE} ./FGRID
+cp ${FALVD_FILE} ./FAL_VD
+cp ${CROSS_SECTION_FILES}/* ./
+
+
+
+## If hminus run then
+if [[ "" != $LBKG ]]; then
+echo "LBKG= $LBKG"
+  mkdir lbkg
+  cp $LBKG/*.lbkg ./lbkg/;
+  cp $POPNUM  POPNUM;
+  cp $RADIOC  RADIOC;
+  cp $RADIOL  RADIOL;
+  cp $RADIOCL RADIOCL;
+  cp POPNUM OLDMODEL
+fi
+
+
+cat > fort.99 << eof
+wrstart
+eof
+cp ../CARDS.TEMPLATE ./CARDS
+
+if [[ "" != $LBKG ]]; then
+cat >> CARDS << eof
+LBKG 1000 19990
+OLDSTART
+eof
+fi;
+
+cp ${ORIG_EXE_FILE} hminus.exe
+#./hminus.exe | tee model.out
+#rm hminus.exe
+fi

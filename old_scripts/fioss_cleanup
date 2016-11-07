@@ -1,0 +1,7 @@
+#!/bin/bash
+find JOB-* -type l | xargs rm
+rmdir JOB-*/*/
+ls JOB-*/
+rm -v JOB-*/{CARDS,contr.txt,Dilfac.mdisp,fioss_prepare,fort.12,frequencies.log,gmon.out}
+rmdir JOB-*/
+mv frequencies-* output/

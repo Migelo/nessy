@@ -1,0 +1,199 @@
+#!/bin/bash
+#****************************************************************
+if [[ "$0" =~ '((/bin/)|(^-))bash' ]]; then
+  # We want to copy the scrip to the run directory. Not possible if sourced
+  echo "Error: Script must be called, not sourced! - exit"
+else
+source $COSI_BIN/helper_scripts
+#function error(){
+#  echo "Abnormal Script Termination"
+#  exit
+#}
+
+INTERACTIVE=0
+function error_f(){
+__ERROR_F=""
+echo "checking files"
+ for A in $@; do 
+   if [[ -a $1 ]]; then echo -n;  else 
+     echo "File/Directory not found: $1"
+     __ERROR_F=1
+   fi;
+ done
+ echo "done: $__ERROR_F"
+ [[ "$__ERROR_F" == "" ]] || error "File/Directory not found"
+}
+
+function error_ifunset() {
+  ERRVAR=""
+  for A in $@; do 
+    [[ `getVar $A` == "" ]] &&  ERRVAR="$ERRVAR $A"
+  done
+  [[ $ERRVAR == "" ]] ||  error "Variable(s)$ERRVAR is/are not set"
+}
+trap error ERR
+SCRIPT="$0"
+
+[[ `dirname $0` == '.' ]] && SCRIPT=`pwd`/`basename $SCRIPT`
+CP='kfmclient copy'
+CP='cp -rfv '
+
+source fioss.settings
+
+
+error_ifunset EXE_DIR         CROSS_SECTION_FILES    \
+              ORIG_COSI       ORIG_EXE        VELO_FILE              \
+              INPUT_SUN_FILE  INPUT_STARK_BROAD  UVVISIR_FILE           \
+              OUTPUT_DIR 
+
+
+# Frequencies to calculate - FREQ_START:FREQ_STEP:FREQ_STOP
+function isSet(){
+ [[ 'X'$1 != 'X' ]]
+}
+
+echo \
+"--------------------------------------
+EXE_DIR=        $EXE_DIR
+ORIG_COSI=      $ORIG_COSI
+ORIG_EXE=       $ORIG_EXE
+VELO_FILE=      $VELO_FILE
+INPUT_SUN_FILE= $INPUT_SUN_FILE
+INPUT_STARK_BROAD= $INPUT_START_BROAD
+UVVISIR_FILE=   $UVVISIR_FILE
+OUTPUT_DIR=     $OUTPUT_DIR
+X_SECTION_FILES=$CROSS_SECTION_FILES
+
+-------------------------------------
+Nothing done yet."
+
+
+error_f  $ORIG_COSI  $ORIG_EXE  $VELO_FILE   $INPUT_SUN_FILE  $INPUT_STARK_BROAD  $UVVISIR_FILE  $CROSS_SECTION_FILES 
+
+[[ -e $OUTPUT_DIR ]] && error "direcotry $OUTPUT_DIR exists"
+[[ INTERACTIVE == 0 ]] && read -p "Wait 4sec or press any key to continue. Press C-c to chancel" -n 1 -t 4;
+echo "Starting..."
+set -v
+mkdir -p ${EXE_DIR}
+
+
+mkdir -p  $OUTPUT_DIR
+$CP fioss.settings $OUTPUT_DIR
+cd "$FIOSS_SRC/.."
+TAR_DIRS="cosi INCLUDE2"
+[[ -e make ]] && TAR_DIRS="$TAR_DIRS make"
+  tar --exclude-vcs -czf $OUTPUT_DIR/fioss-src.tgz $TAR_DIRS
+
+
+$CP $ORIG_EXE/*.exe ${EXE_DIR}
+cd        $OUTPUT_DIR
+pwd
+#	mv radioc  RADIOC
+#	mv radiocl RADIOCL
+#	mv radiol  RADIOL
+
+#     ${ORIG_COSI}/RADIOCL \
+$CP  ${ORIG_COSI}/FAL_VD   ./ 
+$CP  ${ORIG_COSI}/MODFILE  ./
+$CP  ${ORIG_COSI}/FGRID	   ./
+$CP  ${ORIG_COSI}/DATOM	   ./
+$CP  ${ORIG_COSI}/RADIOC   ./
+$CP  ${ORIG_COSI}/RADIOL   ./
+$CP  ${ORIG_COSI}/POPNUM   ./
+$CP  $SCRIPT	           ./
+$CP  ${CROSS_SECTION_FILES}/*---*  ./
+$CP  $INPUT_STARK_BROAD/*  ./
+$CP  $ORIG_EXE/fioss8.exe ./
+$CP  ${VELO_FILE} ./VELO			
+$CP  $INPUT_SUN_FILE ./input_sun
+$CP $FUDGE ./fudge.asc
+## If it is an H- run with molecular abundancies, copy the molecular info
+if [[ -e ${ORIG_COSI}/MolConc.txt ]]; then
+##Moleculare input
+CHEMISTRY=${CHEMISTRY:-"/corona/sim/cosi/input/chemistry/chem.in"}
+$CP  ${ORIG_COSI}/MolConc.txt   ./
+fi
+
+if [[ -d "../ITx/Molec.d" ]]; then
+  for A in ../ITx/Molec.d/*.asc; do 
+    ln -s $A .
+  done
+else
+  MOLECULES=${MOLECULES:-"/corona/sim/cosi/input/linelist/molecules/Kurucz/ASC/CONVERTED/Molec"}
+  $CP  ${MOLECULES}/c2.asc ./
+  $CP  ${MOLECULES}/ch.asc ./
+  $CP  ${MOLECULES}/cn.asc ./
+  $CP  ${MOLECULES}/co.asc ./
+  $CP  ${MOLECULES}/h2.asc ./
+  $CP  ${MOLECULES}/nh.asc ./
+  $CP  ${MOLECULES}/oh.asc ./
+  $CP  ${MOLECULES}/o2.asc ./
+  $CP  ${MOLECULES}/O2_H ./
+  $CP  ${CHEMISTRY} ./
+
+fi
+
+## Check if the UVVISIR_FILE is a directory
+if [[ -d "../ITx/fort.19.d" ]];  then
+   ln -s ../ITx/fort.19.d fort.19.d
+elif [[ -f "../ITx/fort.19" ]]; then
+   ln -s ../ITx/fort.19.d fort.19.d
+elif [[ -d ${UVVISIR_FILE} ]]; then
+   $CP ${UVVISIR_FILE} ./fort.19.d/
+elif [[ `file -bi $UVVISIR_FILE` == "application/x-gzip" ]]; then
+     gunzip -vc $UVVISIR_FILE > ./fort.19 
+else
+     $CP $UVVISIR_FILE ./fort.19
+fi
+
+
+if ( isSet $ORIG_COSI2 ); then
+  echo "Overwriting files from $ORIG_COSI with files from $ORIG_COSI2 in `pwd`"
+   cp -rf $ORIG_COSI2/* ./
+fi;
+
+cat > fort.55 << eof
+0 75 1
+1 0 0
+0 70717273 29 25 0 0 0
+4003. 6000. 30. 1.e-40 10.
+XXXXX
+eof
+cat > fort.56 << eof
+30
+    1       1.0000000
+    2      0.10273355
+    3      -2.6209212
+    4      -1.9866703
+    5     -0.73642161
+    6   0.00036765689
+    7     -0.48151934
+    8     -0.62150366
+    9     -0.91119572
+   10      -2.2589902
+   11    1.7200000e-6
+   12    3.3535415e-5
+   13    2.4899881e-6
+   14    3.5100002e-5
+   15     -0.78164089
+   16    1.6006677e-5
+   17     -0.65177262
+   18     -0.31195785
+   19    1.1100000e-7
+   20    2.1200001e-6
+   21     -0.88117178
+   22      -1.3302081
+   23     -0.72880000
+   24     -0.80174562
+   25      -1.4243562
+   26    2.7111100e-5
+   27      -2.4208846
+   28     -0.81857146
+   29     -0.52955883
+   30      -1.3949059
+eof
+
+
+echo "-------------------- Prepared the run"
+pwd
+fi;

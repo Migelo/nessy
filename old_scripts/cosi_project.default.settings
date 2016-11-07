@@ -1,0 +1,24 @@
+#!/bin/bash
+COSIVERSION=530
+ATMOSPHERE=1999
+TYPE=
+USER=`whoami|grep -o '^[^.]*'`
+CHEM_COMP=NaCaS
+
+HMINUS_SETTINGS=$COSI_BIN/hminus.settings.template
+if   [[ -e hminus.settings.template ]]; then
+ 	HMINUS_SETTINGS=./hminus.settings.template
+elif [[ -e ~/.cosi/hminus.settings.template ]]; then
+	HMINUS_SETTINGS= ~/.cosi/hminus.settings.template
+elif [[ -e $COSI_BIN/hminus.settings.template ]]; then
+	HMINUS_SETTINGS=$COSI_BIN/hminus.settings.template
+fi
+
+if   [[ -e fioss.settings.template ]]; then
+ 	FIOSS_SETTINGS="./fioss.settings.template"
+elif [[ -e ~/.cosi/fioss.settings.template ]]; then
+	FIOSS_SETTINGS="~/.cosi/fioss.settings.template"
+#elif [[ -e $COSI_BIN/fioss.settings.template ]]; then
+else
+	FIOSS_SETTINGS="$COSI_BIN/fioss.settings.template"
+fi

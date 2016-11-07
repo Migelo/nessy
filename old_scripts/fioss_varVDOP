@@ -1,0 +1,30 @@
+#!/bin/bash
+CTRL=$1
+cd $1
+COUNTER=0
+for A in [0-9]*; do
+VDOP=""
+((COUNTER == (COUNTER/10)*10)) && echo -n "$A"
+COUNTER=$[COUNTER+1]
+# 1700 < lambda <= 2100 : 15
+# 2100 < lambda <= 2500 : 8
+# 2500 < lambda <= 4000 : 3
+# according to M. Haberreiter, 2008
+DID="-"
+if (( 10#${A}>=1700 && 10#${A} <= 4000 )); then
+  if (( 10#$A < 2100 )); then export VDOP=15
+  elif (( 10#$A < 2500 )); then export VDOP=8 
+  elif (( 10#$A < 4000 )); then export VDOP=3; fi
+fi
+if [[ $VDOP ]]; then
+  DID="#"
+  if [[ `grep '^VDOP=' $A` ]]; then
+    sed -i "s/^VDOP=.*/VDOP=  ${VDOP}./" $A;
+  else
+    sed -i "1iVDOP=  ${VDOP}." $A;
+  fi
+fi
+echo -n "$DID"
+(( COUNTER >= 50 )) && echo  && COUNTER=0
+done
+echo
