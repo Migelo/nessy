@@ -177,8 +177,7 @@ fi
 #CTRL=${CTRL:-$(pwd)/ctrl-$$}
 #mkdir -p "$CTRL"
 CTRL=${CTRL:-$(pwd)/ctrl-$$}
-mkdir -p $CTRL || echo failure
-echo 'Making dir' $CTRL
+mkdir -p "$CTRL"
 for FREQ in $FREQ_TODO; do
   echo "INTERVAL $FREQ. $((10#$FREQ+10#$FREQ_STEP_E))."  > "$CTRL"/"$FREQ"
 done
@@ -208,8 +207,8 @@ for ((A=1;A<=MAX_PROC;A++)); do
 done
 wait
 
-#rmdir "$CTRL" &> /dev/null || true
-#rm "$CTRL"-wd || true
+rmdir "$CTRL" &> /dev/null || true
+rm "$CTRL"-wd || true
 fioss_mv_results "$DIRS" . 
 A=1
 for A in JOB-*; do
