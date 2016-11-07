@@ -32,7 +32,7 @@ trap "return 2" 1 2 3 15
 cd "$2" || exit
 mkdir -p mdisp lopa title output
 ## While there are files available, run them
-while [[ $(find "$CTRL" | head -1) ]]; do
+while [[ $(ls "$CTRL" | head -1) ]]; do
 ## Make the program pausable by placing the file pause in the directory or its parents directory
 if [[ -e '../pause' || -e 'pause' ]]; then
   echo "Fioss is paused - rm pause to continue"
@@ -174,8 +174,11 @@ fi
 
 
 # go through all loops, start by $FREQ_START(900), step $FREQ_STEP(2), end FREQ_STOP(10000)
+#CTRL=${CTRL:-$(pwd)/ctrl-$$}
+#mkdir -p "$CTRL"
 CTRL=${CTRL:-$(pwd)/ctrl-$$}
-mkdir -p "$CTRL"
+mkdir -p $CTRL || echo failure
+echo 'Making dir' $CTRL
 for FREQ in $FREQ_TODO; do
   echo "INTERVAL $FREQ. $((10#$FREQ+10#$FREQ_STEP_E))."  > "$CTRL"/"$FREQ"
 done
@@ -205,8 +208,8 @@ for ((A=1;A<=MAX_PROC;A++)); do
 done
 wait
 
-rmdir "$CTRL" &> /dev/null || true
-rm "$CTRL"-wd || true
+#rmdir "$CTRL" &> /dev/null || true
+#rm "$CTRL"-wd || true
 fioss_mv_results "$DIRS" . 
 A=1
 for A in JOB-*; do
