@@ -24,11 +24,12 @@ fi
 ## When finished, copy the files into $WORKING_DIR/{lopa,mdisp,title}
 function fioss_runProg (){
 CTRL=$1
-
+echo This JOB ctrl directory is $CTRL
 ## Set up error control
-trap 'rmdir $CTRL/.lock; error' 0
+#trap 'rmdir $CTRL/.lock; error' 0
 trap "return 2" 1 2 3 15
-
+echo "Current folder: "$(pwd)
+echo "cd to folder" "$2"
 cd "$2" || exit
 mkdir -p mdisp lopa title output
 ## While there are files available, run them
@@ -45,12 +46,12 @@ if [[ -e '../stop' || -e 'stop'  ]]; then
   echo "Stop Code"
   return 0
 fi
-#### Fetch new Control File {
-lock "$CTRL"
+#### Fetch the Control File {
+#lock "$CTRL"
 FILE1=$(ls "$CTRL" | grep -v 'wd$' | head -1)
 FILE=$CTRL/$FILE1
 mv "$FILE" . &> /dev/null || continue ## Fetch the topmost file, silently repeat loop if failed
-release-lock "$CTRL"
+#release-lock "$CTRL"
 echo "$FILE1" @ "$2"
 ##### Fetched }
 ## Create CARDS from TEMPLATE and CTRL-FILE
@@ -121,6 +122,7 @@ if [[  ! -e CARDS.TEMPLATE ]];then
 #  exit
 fi
 
+# parse arguments
 if [[ "$1" == "--ctrl" ]]; then
   CTRL_SET=1
   if [[ "$CTRL" =~ /.* ]]; then
@@ -185,12 +187,13 @@ fi
 #mkdir -p "$CTRL"
 CTRL=${CTRL:-$(pwd)/ctrl-$$} # name of the CTRL folder ending with the processID
 mkdir -p "$CTRL"
-
+# create the files with frequency intervals
 for FREQ in $FREQ_TODO; do
   echo "INTERVAL $FREQ. $((10#$FREQ+10#$FREQ_STEP_E))."  > "$CTRL"/"$FREQ"
 done
 echo CTRL = "$CTRL"/
-
+CTRL_FOLDER_NAME=$(echo $CTRL | rev | cut -d/ -f1 | rev)
+echo CTRL_FOLDER_NAME = "$CTRL_FOLDER_NAME"
 [[ "$CTRL_SET" ]] || ln -s "$(pwd)" "$CTRL-wd"
 
 MAX_PROC=${MAX_PROC:-2}
@@ -208,19 +211,44 @@ for ((A=1;A<=MAX_PROC;A++)); do
     echo "Start Job $DIR"
     fioss_cplink_dir . "$DIR"
   fi
-  [[ $ABEMLIN_DIR ]] &&  mkdir -p "$DIR"/"${ABEMLIN_DIR}"
-  fioss_runProg "$CTRL/" "$DIR" &
-  sleep 0.2
-  DIRS="$DIRS $DIR"
+done
+
+# create ctrl directories in each JOB directory
+for folder in JOB-*; do
+  mkdir -p "$folder"/"$CTRL_FOLDER_NAME"
+  [[ "$CTRL_SET" ]] || ln -s "$(pwd)" $(pwd)/"$folder"/"$CTRL_FOLDER_NAME-wd"
+done
+
+counter=1 # counter holds the current directory
+# copy intervals from the main ctrl dir to ctrl dir for each job
+for FREQ in $FREQ_TODO; do
+  filename=JOB-"$counter"-
+  filename=$(pwd)/$(find . -maxdepth 1 -name "$filename*" -printf '%P\n')
+  echo "$filename"
+  mv "$CTRL"/"$FREQ" "$filename"/"$CTRL_FOLDER_NAME"/
+  counter=$(( counter + 1 ))
+  if [ $counter -gt $MAX_PROC ]; then
+    counter=1
+  fi
+done
+
+
+for folder in JOB-*; do
+  [[ $ABEMLIN_DIR ]] &&  mkdir -p $(pwd)"$folder"/"${ABEMLIN_DIR}" 
+  fioss_runProg $(pwd)"/$folder"/"$CTRL_FOLDER_NAME" "$folder" &
+  #sleep 0.2
+  DIRS="$DIRS $folder"
 done
 wait
 
 rmdir "$CTRL" &> /dev/null || true
 rm "$CTRL"-wd || true
 echo removing ctrl folders
-fioss_mv_results $DIRS . 
+#fioss_mv_results $DIRS . 
+fioss_mv_results $(find . -maxdepth 1 -name 'JOB*' -printf '%P\n') .
+
 A=1
 for A in JOB-*; do
-mv "$A"/frequencies.log frequencies-"$A".log
-let A=A+1
+  mv "$A"/frequencies.log frequencies-"$A".log
+  let A=A+1
 done
