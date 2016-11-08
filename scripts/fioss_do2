@@ -208,7 +208,7 @@ for ((A=1;A<=MAX_PROC;A++)); do
     echo "Start Job $DIR"
     fioss_cplink_dir . "$DIR" --force
   else
-    echo "Start Job $DIR"
+    echo "Create job dir $DIR"
     fioss_cplink_dir . "$DIR"
   fi
 done
@@ -224,7 +224,6 @@ counter=1 # counter holds the current directory
 for FREQ in $FREQ_TODO; do
   filename=JOB-"$counter"-
   filename=$(pwd)/$(find . -maxdepth 1 -name "$filename*" -printf '%P\n')
-  echo "$filename"
   mv "$CTRL"/"$FREQ" "$filename"/"$CTRL_FOLDER_NAME"/
   counter=$(( counter + 1 ))
   if [ $counter -gt $MAX_PROC ]; then
