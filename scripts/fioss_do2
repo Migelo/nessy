@@ -40,8 +40,8 @@ if [[ -e '../pause' || -e 'pause' ]]; then
     sleep 1;
   done
 fi
-
-if [[ -e '../stop' || -e 'stop'  ]]; then  # make the program stoppable
+# Make the program stoppable the same way it is pausable
+if [[ -e '../stop' || -e 'stop'  ]]; then  
   echo "Stop Code"
   return 0
 fi
@@ -105,6 +105,13 @@ done
 
 }
 
+
+##
+## 
+## 
+## 
+## 
+################################3
 
 trap error ERR
 [[ -e ../CARDS.TEMPLATE ]] || cp "$COSI_BIN"/CARDS.FIOSS.TEMPLATE ../CARDS.FIOSS.TEMPLATE
@@ -176,8 +183,9 @@ fi
 # go through all loops, start by $FREQ_START(900), step $FREQ_STEP(2), end FREQ_STOP(10000)
 #CTRL=${CTRL:-$(pwd)/ctrl-$$}
 #mkdir -p "$CTRL"
-CTRL=${CTRL:-$(pwd)/ctrl-$$}
+CTRL=${CTRL:-$(pwd)/ctrl-$$} # name of the CTRL folder ending with the processID
 mkdir -p "$CTRL"
+
 for FREQ in $FREQ_TODO; do
   echo "INTERVAL $FREQ. $((10#$FREQ+10#$FREQ_STEP_E))."  > "$CTRL"/"$FREQ"
 done
@@ -209,7 +217,8 @@ wait
 
 rmdir "$CTRL" &> /dev/null || true
 rm "$CTRL"-wd || true
-fioss_mv_results "$DIRS" . 
+echo removing ctrl folders
+fioss_mv_results $DIRS . 
 A=1
 for A in JOB-*; do
 mv "$A"/frequencies.log frequencies-"$A".log
