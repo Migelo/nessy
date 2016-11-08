@@ -93,16 +93,9 @@ do(
 	export PSM_SHAREDCONTEXTS_MAX=$(((($PPN+3))/4))
 
 	# start your job
-	#	currentFile="4b"
-	#	subBinsFile="      reduced='.r"
-	#	subBinsFile+=$currentFile"'"
-	#	index=859
-	#	`sed -i "${index}s/.*/${subBinsFile}/" ../COSI_new/cosi/inibl0.for`
-	#	export TERM=xterm
-	#	export PATH=/scratch/cernetic/nessyH1/scripts/:$PATH
-	#	export COSI_BIN=/scratch/cernetic/nessyH1/scripts/
-		export MAX_PROC=48
-		fioss_do2 1010 10 8980 > nohup
+	export MAX_PROC=48
+	fioss_do2 1010 10 8980 > nohup
+	
 	# unload module(s)
 	module unload $MODULES
 	module unload intel
