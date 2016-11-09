@@ -15,6 +15,10 @@ MAX_PROC: Defines the number of processes run simultaniuosly. Preset to 2. Use e
  exit
 fi
 
+################################3
+### Prepare nodes files
+IFS=$'\r\n' GLOBIGNORE='*' command eval  'nodefile=($(cat ./nodes_file))'
+
 
 ################################3
 ## fioss_runProg CTRL WORKING_DIR
@@ -76,7 +80,7 @@ fi
   echo -n "$(date +'%Y-%m-%d %H:%M:%S') Freq: $FREQ, VDOP: $VDOP " | tee -a  frequencies.log
   APPEND=""
   ## Run fioss8.exe
-  ./fioss8.exe "$FREQ"  &> output/fioss-"$FREQ".out && echo -n " done" >> frequencies.log ||
+  mpiexec -np 1 -hosts "${nodefile[$3]}" ./fioss8.exe "$FREQ"  &> output/fioss-"$FREQ".out && echo -n " done" >> frequencies.log ||
   echo -n " failed" | tee -a  frequencies.log
   if tail -n1 output/fioss-"$FREQ".out | grep 'O.K.' &> /dev/null; then
     echo " O.K." | tee -a frequencies.log
@@ -139,6 +143,7 @@ elif [[ "$1" == "--single" ]]; then
   done
   echo Freqs todo:  "$FREQ_TODO"
 else
+
   ## Frequencies to calculate - FREQ_START:FREQ_STEP:FREQ_STOP
 
 FREQ_START=${1:-900}
@@ -198,19 +203,23 @@ echo CTRL_FOLDER_NAME = "$CTRL_FOLDER_NAME"
 
 MAX_PROC=${MAX_PROC:-2}
 echo MAX_PROC = "$MAX_PROC"
+NODE_NUMBER=${NODE_NUMBER:-1}
+echo NODE_NUMBER = "$NODE_NUMBER"
 ABEMLIN_DIR=$(egrep '^ABEMLIN .*' CARDS.TEMPLATE | sed 's/^ABEMLIN [A-Z]* *//')
 #echo ABEMLIN_DIR=\"$ABEMLIN_DIR\"
 # mkdir lopa title tau mdisp || true
-for ((A=1;A<=MAX_PROC;A++)); do
-  DIR=JOB-$A-$$ 
-  if [[ -e "$DIR" ]]; then
-    DIR="$(mktemp -d ${DIR}_XX)"
-    echo "Start Job $DIR"
-    fioss_cplink_dir . "$DIR" --force
-  else
-    echo "Create job dir $DIR"
-    fioss_cplink_dir . "$DIR"
-  fi
+for ((B=1;B<=NODE_NUMBER;B++)); do
+  for ((A=1;A<=MAX_PROC;A++)); do
+    DIR=JOB-$A-$B-$$ 
+    if [[ -e "$DIR" ]]; then
+      DIR="$(mktemp -d ${DIR}_XX)"
+      echo "Start Job $DIR"
+      fioss_cplink_dir . "$DIR" --force
+    else
+      echo "Create job dir $DIR"
+      fioss_cplink_dir . "$DIR"
+    fi
+  done
 done
 
 # create ctrl directories in each JOB directory
@@ -219,24 +228,30 @@ for folder in JOB-*; do
   [[ "$CTRL_SET" ]] || ln -s "$(pwd)" $(pwd)/"$folder"/"$CTRL_FOLDER_NAME-wd"
 done
 
-counter=1 # counter holds the current directory
 # copy intervals from the main ctrl dir to ctrl dir for each job
+node=1 # current node number
+counter=1 # current job mumber for a given node
 for FREQ in $FREQ_TODO; do
-  filename=JOB-"$counter"-
+  filename=JOB-"$counter"-"$node"
   filename=$(pwd)/$(find . -maxdepth 1 -name "$filename*" -printf '%P\n')
   mv "$CTRL"/"$FREQ" "$filename"/"$CTRL_FOLDER_NAME"/
   counter=$(( counter + 1 ))
   if [ $counter -gt $MAX_PROC ]; then
     counter=1
+    node=$(( node + 1 ))
+  fi
+  if [ $node -gt "$NODE_NUMBER" ]; then
+    node=1
   fi
 done
 
-
+counter=1
 for folder in JOB-*; do
   [[ $ABEMLIN_DIR ]] &&  mkdir -p $(pwd)"$folder"/"${ABEMLIN_DIR}" 
-  fioss_runProg $(pwd)"/$folder"/"$CTRL_FOLDER_NAME" "$folder" &
+  fioss_runProg $(pwd)"/$folder"/"$CTRL_FOLDER_NAME" "$folder" "$counter" &
   #sleep 0.2
   DIRS="$DIRS $folder"
+  counter=$(( counter + 1 ))
 done
 wait
 
