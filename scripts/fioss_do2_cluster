@@ -253,7 +253,6 @@ for folder in JOB-*; do
   [[ $ABEMLIN_DIR ]] &&  mkdir -p $(pwd)"$folder"/"${ABEMLIN_DIR}" 
   fioss_runProg $(pwd)"/$folder"/"$CTRL_FOLDER_NAME" "$folder" "$counter" &
   #sleep 0.2
-  DIRS="$DIRS $folder"
   counter=$(( counter + 1 ))
 done
 wait
@@ -261,7 +260,6 @@ wait
 rmdir "$CTRL" &> /dev/null || true
 rm "$CTRL"-wd || true
 echo removing ctrl folders
-#fioss_mv_results $DIRS . 
 fioss_mv_results $(find . -maxdepth 1 -name 'JOB*' -printf '%P\n') .
 
 A=1

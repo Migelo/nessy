@@ -63,7 +63,7 @@ FREQ=$(egrep -o 'INTERVAL +[0-9]*' "$FILE1" | egrep -o '[0-9]+')
 if [[ -d fort.19.d ]]; then
    while IFS=" " read -r FGRID1 FGRID2 FGRIDN; do
     if ((10#$FREQ > 10#$FGRID1)) && ((10#$FREQ <= 10#$FGRID2)) ;  then
-       echo Using /"$FGRIDN"/ for "$FREQ"
+       echo Using /"$FGRIDN"/ "for" "$FREQ"
        [[ -L fort.19 ]] && rm fort.19
        [[ $FGRIDN =~ '^/' ]]\
            && ln -s "$FGRIDN" fort.19 \
@@ -236,14 +236,12 @@ for folder in JOB-*; do
   [[ $ABEMLIN_DIR ]] &&  mkdir -p $(pwd)"$folder"/"${ABEMLIN_DIR}" 
   fioss_runProg $(pwd)"/$folder"/"$CTRL_FOLDER_NAME" "$folder" &
   #sleep 0.2
-  DIRS="$DIRS $folder"
 done
 wait
 
 rmdir "$CTRL" &> /dev/null || true
 rm "$CTRL"-wd || true
 echo removing ctrl folders
-#fioss_mv_results $DIRS . 
 fioss_mv_results $(find . -maxdepth 1 -name 'JOB*' -printf '%P\n') .
 
 A=1
