@@ -15,6 +15,10 @@ MAX_PROC: Defines the number of processes run simultaniuosly. Preset to 2. Use e
  exit
 fi
 
+################################3
+### Prepare nodes files
+IFS=$'\r\n' GLOBIGNORE='*' command eval  'nodefile=($(tac ./nodes_file))'
+
 
 ################################3
 ## fioss_runProg CTRL WORKING_DIR
@@ -23,86 +27,89 @@ fi
 ## cd into $WORKING_DIR, fetch the top most file from $CTRL Directory and run fioss8.exe on it
 ## When finished, copy the files into $WORKING_DIR/{lopa,mdisp,title}
 function fioss_runProg (){
-CTRL=$1
-echo This JOB ctrl directory is $CTRL
-## Set up error control
-#trap 'rmdir $CTRL/.lock; error' 0
-trap "return 2" 1 2 3 15
-echo "Current folder: "$(pwd)
-echo "cd to folder" "$2"
-cd "$2" || exit
-mkdir -p mdisp lopa title output
-## While there are files available, run them
-while [[ $(ls "$CTRL" | head -1) ]]; do
-## Make the program pausable by placing the file pause in the directory or its parents directory
-if [[ -e '../pause' || -e 'pause' ]]; then
-  echo "Fioss is paused - rm pause to continue"
-  while [[ -e 'pause' || -e '../pause' ]]; do
-    sleep 1;
-  done
-fi
-# Make the program stoppable the same way it is pausable
-if [[ -e '../stop' || -e 'stop'  ]]; then  
-  echo "Stop Code"
-  return 0
-fi
-#### Fetch the Control File {
-#lock "$CTRL"
-FILE1=$(ls "$CTRL" | grep -v 'wd$' | head -1)
-FILE=$CTRL/$FILE1
-mv "$FILE" . &> /dev/null || continue ## Fetch the topmost file, silently repeat loop if failed
-#release-lock "$CTRL"
-echo "$FILE1" @ "$2"
-##### Fetched }
-## Create CARDS from TEMPLATE and CTRL-FILE
-cat ../CARDS.TEMPLATE "$FILE1" > CARDS
-
-## Get correct fort.19 file (LineDB)
-FREQ=$(egrep -o 'INTERVAL +[0-9]*' "$FILE1" | egrep -o '[0-9]+')
-
-if [[ -d fort.19.d ]]; then
-   while IFS=" " read -r FGRID1 FGRID2 FGRIDN; do
-    if ((10#$FREQ > 10#$FGRID1)) && ((10#$FREQ <= 10#$FGRID2)) ;  then
-       echo Using /"$FGRIDN"/ "for" "$FREQ"
-       [[ -L fort.19 ]] && rm fort.19
-       [[ $FGRIDN =~ '^/' ]]\
-           && ln -s "$FGRIDN" fort.19 \
-           || ln -s "fort.19.d/$FGRIDN" fort.19
-      break 1 
+  CTRL=$1
+  echo This JOB ctrl directory is $CTRL
+  ## Set up error control
+  #trap 'rmdir $CTRL/.lock; error' 0
+  trap "return 2" 1 2 3 15
+  echo "Current folder: "$(pwd)
+  echo "cd to folder" "$2"
+  cd "$2" || exit
+  mkdir -p mdisp lopa title output
+  ## While there are files available, run them
+  while [[ $(ls "$CTRL" | head -1) ]]; do
+    ## Make the program pausable by placing the file pause in the directory or its parents directory
+    if [[ -e '../pause' || -e 'pause' ]]; then
+      echo "Fioss is paused - rm pause to continue"
+      while [[ -e 'pause' || -e '../pause' ]]; do
+        sleep 1;
+      done
     fi
-  done < "fort.19.d/frequency.grid"
-fi
+    # Make the program stoppable the same way it is pausable
+    if [[ -e '../stop' || -e 'stop'  ]]; then  
+      echo "Stop Code"
+      return 0
+    fi
+    #### Fetch the Control File {
+    #lock "$CTRL"
+    FILE1=$(ls "$CTRL" | grep -v 'wd$' | head -1)
+    FILE=$CTRL/$FILE1
+    mv "$FILE" . &> /dev/null || continue ## Fetch the topmost file, silently repeat loop if failed
+    #release-lock "$CTRL"
+    echo "$FILE1" @ "$2"
+    ##### Fetched }
+    ## Create CARDS from TEMPLATE and CTRL-FILE
+    cat ../CARDS.TEMPLATE "$FILE1" > CARDS
 
-  echo -n "$(date +'%Y-%m-%d %H:%M:%S') Freq: $FREQ, VDOP: $VDOP " | tee -a  frequencies.log
-  APPEND=""
-  ## Run fioss8.exe
-  ./fioss8.exe "$FREQ"  &> output/fioss-"$FREQ".out && echo -n " done" >> frequencies.log ||
-  echo -n " failed" | tee -a  frequencies.log
-  if tail -n1 output/fioss-"$FREQ".out | grep 'O.K.' &> /dev/null; then
-    echo " O.K." | tee -a frequencies.log
-  else
-    tail -n1 output/fioss-"$FREQ".out | tee -a frequencies.log
-    APPEND="fail"
+    ## Get correct fort.19 file (LineDB)
+    FREQ=$(egrep -o 'INTERVAL +[0-9]*' "$FILE1" | egrep -o '[0-9]+')
+
+    if [[ -d fort.19.d ]]; then
+       while IFS=" " read -r FGRID1 FGRID2 FGRIDN; do
+         if ((10#$FREQ > 10#$FGRID1)) && ((10#$FREQ <= 10#$FGRID2)) ;  then
+           echo Using /"$FGRIDN"/ "for" "$FREQ"
+           [[ -L fort.19 ]] && rm fort.19
+           [[ $FGRIDN =~ '^/' ]] && ln -s "$FGRIDN" fort.19 || ln -s "fort.19.d/$FGRIDN" fort.19
+           break 1 
+         fi
+       done < "fort.19.d/frequency.grid"
+    fi
+
+    echo -n "$(date +'%Y-%m-%d %H:%M:%S') Freq: $FREQ, VDOP: $VDOP " | tee -a  frequencies.log
+    APPEND=""
+    ## Run fioss8.exe
+    echo Starting job "{$3}" on "${nodefile[$3]}" kekec++
+    if [ "$3" -eq "$NODE_NUMBER" ]; then
+      ./fioss8.exe "$FREQ"  &> output/fioss-"$FREQ".out && echo -n " done" >> frequencies.log
+    else
+      mpiexec -np 1 -hosts "${nodefile[$3]}" ./fioss8.exe "$FREQ"  &> output/fioss-"$FREQ".out && echo -n " done" >> frequencies.log
+    fi
+    #echo -n " failed" | tee -a  frequencies.log
+    if tail -n1 output/fioss-"$FREQ".out | grep 'O.K.' &> /dev/null; then
+      echo " O.K." | tee -a frequencies.log
+    else
+      tail -n1 output/fioss-"$FREQ".out | tee -a frequencies.log
+      APPEND="fail"
+    fi
+    [[ -e save_out || -e ../save_out ]] && APPEND="${APPEND:+${APPEND}+}save"
+    ## Decide what to do with the fioss8.exe console output
+    if [[ "$APPEND"  ]]; then 
+      mv output/fioss-"$FREQ".out output/fioss-"$FREQ"-"$APPEND".out
+    else
+      rm output/fioss-"$FREQ".out
+    fi
+    ## move the resulting mdisp lopa title files into its corresponding directory
+    [[ -d mdisp ]] && mv  [0-9]*.mdisp mdisp || true
+    [[ -d lopa  ]] && mv  [0-9]*.lopa  lopa  || true
+    [[ -d title ]] && mv  [0-9]*.title title || true
+    [[ -d tau ]] && mv  [0-9]*.tau tau || true
+    ## If failed, move the control file to the output directory
+    if [[ "$APPEND" =~ .*fail.* ]]; then 
+      mv "$FILE1" output
+    else
+      rm "$FILE1"
   fi
-  [[ -e save_out || -e ../save_out ]] && APPEND="${APPEND:+${APPEND}+}save"
-  ## Decide what to do with the fioss8.exe console output
-  if [[ "$APPEND"  ]]; then 
-    mv output/fioss-"$FREQ".out output/fioss-"$FREQ"-"$APPEND".out
-  else
-    rm output/fioss-"$FREQ".out
-  fi
-  ## move the resulting mdisp lopa title files into its corresponding directory
-  [[ -d mdisp ]] && mv  [0-9]*.mdisp mdisp || true
-  [[ -d lopa  ]] && mv  [0-9]*.lopa  lopa  || true
-  [[ -d title ]] && mv  [0-9]*.title title || true
-  [[ -d tau ]] && mv  [0-9]*.tau tau || true
-  ## If failed, move the control file to the output directory
-  if [[ "$APPEND" =~ .*fail.* ]]; then 
-    mv "$FILE1" output
-  else
-    rm "$FILE1"
-  fi
-done
+  done
 
 }
 
@@ -139,6 +146,7 @@ elif [[ "$1" == "--single" ]]; then
   done
   echo Freqs todo:  "$FREQ_TODO"
 else
+
   ## Frequencies to calculate - FREQ_START:FREQ_STEP:FREQ_STOP
 
 FREQ_START=${1:-900}
@@ -198,19 +206,23 @@ echo CTRL_FOLDER_NAME = "$CTRL_FOLDER_NAME"
 
 MAX_PROC=${MAX_PROC:-2}
 echo MAX_PROC = "$MAX_PROC"
+NODE_NUMBER=${NODE_NUMBER:-1}
+echo NODE_NUMBER = "$NODE_NUMBER"
 ABEMLIN_DIR=$(egrep '^ABEMLIN .*' CARDS.TEMPLATE | sed 's/^ABEMLIN [A-Z]* *//')
 #echo ABEMLIN_DIR=\"$ABEMLIN_DIR\"
 # mkdir lopa title tau mdisp || true
-for ((A=1;A<=MAX_PROC;A++)); do
-  DIR=JOB-$A-$$ 
-  if [[ -e "$DIR" ]]; then
-    DIR="$(mktemp -d ${DIR}_XX)"
-    echo "Start Job $DIR"
-    fioss_cplink_dir . "$DIR" --force
-  else
-    echo "Create job dir $DIR"
-    fioss_cplink_dir . "$DIR"
-  fi
+for ((B=1;B<=NODE_NUMBER;B++)); do
+  for ((A=1;A<=MAX_PROC;A++)); do
+    DIR=JOB-$A-$B-$$ 
+    if [[ -e "$DIR" ]]; then
+      DIR="$(mktemp -d ${DIR}_XX)"
+      echo "Start Job $DIR"
+      fioss_cplink_dir . "$DIR" --force
+    else
+      echo "Create job dir $DIR"
+      fioss_cplink_dir . "$DIR"
+    fi
+  done
 done
 
 # create ctrl directories in each JOB directory
@@ -219,23 +231,29 @@ for folder in JOB-*; do
   [[ "$CTRL_SET" ]] || ln -s "$(pwd)" $(pwd)/"$folder"/"$CTRL_FOLDER_NAME-wd"
 done
 
-counter=1 # counter holds the current directory
 # copy intervals from the main ctrl dir to ctrl dir for each job
+node=1 # current node number
+counter=1 # current job mumber for a given node
 for FREQ in $FREQ_TODO; do
-  filename=JOB-"$counter"-
+  filename=JOB-"$counter"-"$node"
   filename=$(pwd)/$(find . -maxdepth 1 -name "$filename*" -printf '%P\n')
   mv "$CTRL"/"$FREQ" "$filename"/"$CTRL_FOLDER_NAME"/
   counter=$(( counter + 1 ))
   if [ $counter -gt $MAX_PROC ]; then
     counter=1
+    node=$(( node + 1 ))
+  fi
+  if [ $node -gt "$NODE_NUMBER" ]; then
+    node=1
   fi
 done
 
-
+counter=1
 for folder in JOB-*; do
   [[ $ABEMLIN_DIR ]] &&  mkdir -p $(pwd)"$folder"/"${ABEMLIN_DIR}" 
-  fioss_runProg $(pwd)"/$folder"/"$CTRL_FOLDER_NAME" "$folder" &
+  fioss_runProg $(pwd)"/$folder"/"$CTRL_FOLDER_NAME" "$folder" "$counter" &
   #sleep 0.2
+  counter=$(( counter + 1 ))
 done
 wait
 
@@ -249,4 +267,4 @@ for A in JOB-*; do
   mv "$A"/frequencies.log frequencies-"$A".log
   let A=A+1
 done
-
+echo "Done!"
