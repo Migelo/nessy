@@ -1,7 +1,11 @@
 #!/bin/bash
-(
-sleep 60	#wait for the hminus.exe processes to start
-				#optimal solution would run this part of the script at the end of the first successfull completion of the 2nd part of the script	
+(number_of_processes=$(ps aux | pgrep hminus.exe | wc -l)
+while [ $number_of_processes -eq 0 ]; do
+	echo "No processes found yet, sleeping 10s."
+	sleep 10
+	number_of_processes=$(ps aux | pgrep hminus.exe | wc -l)
+done
+
 hminus_exists=1
 while [ $hminus_exists -eq 1 ]; do
 	number_of_processes=$(ps aux | pgrep hminus.exe | wc -l)
@@ -15,10 +19,11 @@ while [ $hminus_exists -eq 1 ]; do
 		counter=0
 	#	echo 'time: '"${time_elapsed[*]}"
 	#	echo 'pid: '"${pid[*]}"
+		echo "Found ""$number_of_processes"" processes"
 		for time in ${time_elapsed[*]};
 		do
 			#echo "${time}"
-			if [ $((time)) -gt 2 ]; then
+			if [ $((time)) -gt 90 ]; then
 				echo 'Killing process with time: '"${time}"' minutes, pid: '"${pid[$counter]}"'.'
 				kill -9 "${pid[$counter]}"
 			else
@@ -92,7 +97,7 @@ do(
 	# start your job
 	export NODE_NUMBER=3
 	export MAX_PROC=48
-	fioss_do2 1010 10 8980 > nohup
+	fioss_do2_cluster 1010 10 8980 > nohup
 	
 	# unload module(s)
 	module unload intel
