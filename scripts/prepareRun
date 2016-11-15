@@ -70,7 +70,7 @@ done
 ##	edit the number of nodes by setting the $NODE variable, default is 3
 ##	set the wavelength interval by changing the parameters of fioss_do2_cluster command 
 ##		fioss_do2_cluster BEGINNING STEP END
-NODE=3
+NODE=1
 
 for file in atmospheres/*.atm;
 do(
