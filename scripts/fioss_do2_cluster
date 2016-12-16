@@ -17,8 +17,8 @@ fi
 
 ################################3
 ### Prepare nodes files
-IFS=$'\r\n' GLOBIGNORE='*' command eval  'nodefile=($(tac ./nodes_file))'
-
+#IFS=$'\r\n' GLOBIGNORE='*' command eval  'nodefile=($(tac ./nodes_file))'
+readarray nodefile < ./nodes_file
 
 ################################3
 ## fioss_runProg CTRL WORKING_DIR
@@ -75,15 +75,17 @@ function fioss_runProg (){
        done < "fort.19.d/frequency.grid"
     fi
 
-    echo -n "$(date +'%Y-%m-%d %H:%M:%S') Freq: $FREQ, VDOP: $VDOP " | tee -a  frequencies.log
+    echo -n "$(date +'%Y-%m-%d %H:%M:%S') Freq: $FREQ, VDOP: $VDOP 3arg: $3 4arg: $4 "${nodefile[$4]}" " | tee -a  frequencies.log
     APPEND=""
     ## Run fioss8.exe
-    echo Starting job "{$3}" on "${nodefile[$3]}" kekec++
-    if [ "$3" -eq "$NODE_NUMBER" ]; then
-      ./fioss8.exe "$FREQ"  &> output/fioss-"$FREQ".out && echo -n " done" >> frequencies.log
-    else
-      mpiexec -np 1 -hosts "${nodefile[$3]}" ./fioss8.exe "$FREQ"  &> output/fioss-"$FREQ".out && echo -n " done" >> frequencies.log
-    fi
+#    if (( "$3" == 1 )); then
+#      ./fioss8.exe "$FREQ"  &> output/fioss-"$FREQ".out && echo -n " done" >> frequencies.log
+#      echo "Starting ""$FILE1" @ "$2"
+#    else
+      echo "Kekec123456 "$4
+      mpiexec -np 1 -host ${nodefile[$4]} ./fioss8.exe "$FREQ" &> output/fioss-"$FREQ".out && echo -n " done" >> frequencies.log
+      echo "Starting ""$FILE1" @ "$2"
+#    fi
     #echo -n " failed" | tee -a  frequencies.log
     if tail -n1 output/fioss-"$FREQ".out | grep 'O.K.' &> /dev/null; then
       echo " O.K." | tee -a frequencies.log
@@ -248,12 +250,14 @@ for FREQ in $FREQ_TODO; do
   fi
 done
 
-counter=1
-for folder in JOB-*; do
-  [[ $ABEMLIN_DIR ]] &&  mkdir -p $(pwd)"$folder"/"${ABEMLIN_DIR}" 
-  fioss_runProg $(pwd)"/$folder"/"$CTRL_FOLDER_NAME" "$folder" "$counter" &
-  #sleep 0.2
-  counter=$(( counter + 1 ))
+counter=0
+for ((B=1;B<=NODE_NUMBER;B++)); do
+  for folder in JOB-*-"$B"-*; do
+    [[ $ABEMLIN_DIR ]] &&  mkdir -p $(pwd)"$folder"/"${ABEMLIN_DIR}" 
+    fioss_runProg $(pwd)"/$folder"/"$CTRL_FOLDER_NAME" "$folder" "$B" "$counter" &
+    #sleep 0.2
+    counter=$(( counter + 1 ))
+  done
 done
 wait
 

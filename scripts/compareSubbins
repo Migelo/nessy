@@ -11,18 +11,19 @@ for folder in ./fioss/T* ; do         # Use ./* ... NEVER bare *
   fi
 done
 
-if [ ! -d ./subBins ]; then
-  echo "subBins folder does not exist, creating ""$(pwd)"/subBins
-  mkdir -p ./subBins || exit
-fi
+subBins_folder="subBins"
 
+if [ ! -d ./"$subBins_folder" ]; then
+  echo "subBins folder does not exist, creating ""$(pwd)"/"$subBins_folder"
+  mkdir -p ./"$subBins_folder" || exit
+fi
 
 for folder in fioss/T*; do(
   echo "Processing ""$folder"
   temperature=$(echo "$folder" | awk -F'/' '{print $( NF )}')
-  mkdir -p ./subBins/"$temperature"
-  cd subBins/"$temperature" || exit
-  python /scratch/cernetic/AtmosphericParameters/mergeAtmospheres.py "$currentDir"/"$folder"/lopa/ /scratch/cernetic/AtmosphericParameters/bins 40 /scratch/cernetic/AtmosphericParameters/subBinsk
+  mkdir -p ./"$subBins_folder"/"$temperature"
+  cd "$subBins_folder"/"$temperature" || exit
+  python /scratch/cernetic/AtmosphericParameters/reduce.py "$temperature" /scratch/cernetic/AtmosphericParameters/bins ~/Documents/sorting/lopa-sorting/"$1" 1
 ) &
 done
 wait
