@@ -23,7 +23,7 @@ for folder in fioss/T*; do(
   temperature=$(echo "$folder" | awk -F'/' '{print $( NF )}')
   mkdir -p ./"$subBins_folder"/"$temperature"
   cd "$subBins_folder"/"$temperature" || exit
-  python /scratch/cernetic/AtmosphericParameters/reduce.py "$temperature" /scratch/cernetic/AtmosphericParameters/bins ~/Documents/sorting/lopa-sorting/"$1" 1
+  python /scratch/cernetic/AtmosphericParameters/reduce.py /scratch/cernetic/AtmosphericParameters/bins ~/Documents/sorting/lopa-sorting/"$1" 1
 ) &
 done
 wait

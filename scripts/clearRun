@@ -1,6 +1,6 @@
 #!/bin/bash
-for folder in T*: do
+for folder in ./fioss/T*; do(
 	cd "$folder" || exit
-	rm -rf ctrl-* JOB-* freq*log mdisp* lopa*
-	cd .. || exit
+	rm -rf ctrl-* JOB-* freq*log mdisp* 
+)
 done

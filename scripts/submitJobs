@@ -6,7 +6,7 @@ do(
 	cat > job.sh <<- EOT
 	#!/bin/bash
 	#PBS -q atlasq
-	#PBS -N nessy${folder_name}
+	#PBS -N ${folder_name}
 	#PBS -M cernetic@mps.mpg.de
 	#PBS -j oe
 	#PBS -l nodes=1:ppn=48
@@ -36,9 +36,28 @@ do(
 	export PSM_SHAREDCONTEXTS_MAX=$(((($PPN+3))/4))
 
 	# start your job
+	rm -rf JOB* freq* ctrl* mdisp lopa
 	export MAX_PROC=48
-	fioss_do2 1010 10 8980 > nohup
+	fioss_do2 800 10 21000 > nohup
 	wait
+	
+	cd lopa || exit
+	for f in ???.lopa;do
+	mv "$f" 00"$f"
+	done
+	for f in ????.lopa;do
+	mv "$f" 0"$f"
+	done
+
+	cd ../mdisp || exit
+	for f in ???.mdisp;do
+	mv "$f" 00"$f"
+	done
+	for f in ????.mdisp;do
+	mv "$f" 0"$f"
+	done
+	cd .. || exit
+
 	
 	# unload module(s)
 	module unload $MODULES

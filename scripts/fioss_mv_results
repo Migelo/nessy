@@ -1,7 +1,8 @@
 #!/bin/bash
 
 TO=${BASH_ARGV[0]} # the last argument
-mkdir -p $TO/{lopa,mdisp,title,abemlin,tau}
+#mkdir -p $TO/{lopa,mdisp,title,abemlin,tau}
+mkdir -p $TO/{mdisp,title,abemlin,tau}
 for A in `seq 1 $[BASH_ARGC-1]`; do
   
   FROM=${BASH_ARGV[$A]}
@@ -15,7 +16,7 @@ for A in `seq 1 $[BASH_ARGC-1]`; do
   #echo "$FROM/mdisp...";   
   mv $FROM/mdisp/*.mdisp $TO/mdisp/
   #echo "$FROM/lopa....";   
-  mv $FROM/lopa/*.lopa  $TO/lopa/
+#  mv $FROM/lopa/*.lopa  $TO/lopa/
   #echo "$FROM/title...";   
   mv $FROM/title/*.title $TO/title/
 

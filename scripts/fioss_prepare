@@ -90,7 +90,7 @@ pwd
 #	mv radiol  RADIOL
 
 #     ${ORIG_COSI}/RADIOCL \
-$CP  ${ORIG_COSI}/FAL_VD   ./ 
+$CP  ${ORIG_COSI}/TABLE   ./ 
 $CP  ${ORIG_COSI}/MODFILE  ./
 $CP  ${ORIG_COSI}/FGRID	   ./
 $CP  ${ORIG_COSI}/DATOM	   ./
@@ -124,7 +124,8 @@ if [[ -d "../ITx/fort.19.d" ]];  then
 elif [[ -f "../ITx/fort.19" ]]; then
    ln -s ../ITx/fort.19.d fort.19.d
 elif [[ -d ${UVVISIR_FILE} ]]; then
-   $CP ${UVVISIR_FILE} ./fort.19.d/
+#   $CP ${UVVISIR_FILE} ./fort.19.d/
+   ln -s ${UVVISIR_FILE} ./fort.19.d
 elif [[ `file -bi $UVVISIR_FILE` == "application/x-gzip" ]]; then
      gunzip -vc $UVVISIR_FILE > ./fort.19 
 else

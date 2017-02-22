@@ -1,0 +1,46 @@
+#!/bin/bash
+cd /scratch/cernetic/testRun/ || exit
+rm -rf job*.sh
+number_of_lines="$(cat subBinList | wc -l)"
+readarray subBins < ./subBinList
+#echo $number_of_lines
+for ((i=0;i<number_of_lines;i++));do
+job_name=$(echo "${subBins[i]}"|tr -d '\n')
+cat > job"$i".sh <<- EOT 
+	#!/bin/bash
+	#PBS -q atlasq
+	#PBS -N "$job_name"
+	#PBS -M cernetic@mps.mpg.de
+	#PBS -j oe
+	#PBS -l nodes=1:ppn=48
+	#PBS -l walltime=6:00:00
+	EOT
+	cat >> job"$i".sh <<- "EOT"
+
+	# initialize modules environment
+	. $MODULESHOME/init/bash
+
+	# load module(s)
+	module load intel
+
+	# change to submit dir
+	cd $PBS_O_WORKDIR
+
+	# number of processes
+	NP=$(cat $PBS_NODEFILE | wc -l)
+
+	# number of processes per node
+	PPN=$(($NP/$(cat $PBS_NODEFILE|uniq|wc -l)))
+
+	# set number of hardware contexts
+	export PSM_SHAREDCONTEXTS_MAX=$(((($PPN+3))/4))
+	EOT
+	cat >> job"$i".sh <<- EOT
+	# start your job
+		compareSubbins $job_name
+		python interpolation.py ~/Documents/sorting/lopa-sorting/$job_name 48
+	EOT
+done	
+for file in job*.sh;do
+   qsub "$file"
+done

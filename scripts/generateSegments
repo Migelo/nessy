@@ -1,0 +1,12 @@
+#!/bin/bash
+current_dir="$(pwd)"
+for folder in fioss/T*; do(
+  subBins_folder="subBins"
+  echo "Processing ""$folder"
+  temperature=$(echo "$folder" | awk -F'/' '{print $( NF )}')
+  mkdir -p ./"$subBins_folder"/"$temperature"
+  cd "$subBins_folder"/"$temperature" || exit
+  python /home/cernetic/Documents/sorting/lopa-sorting/mergeLopa.py "$current_dir"/"$folder""/lopa"
+) &
+done
+wait
