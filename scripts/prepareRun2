@@ -92,6 +92,7 @@ do(
     echo "Running fioss_prepare for ""$folder_name"
     fioss_prepare "$folder_name" #prepare fioss with the same folder name in fioss/$folder_name
     cd fioss/"$folder_name" || exit
+    cp ../condor_k2/fioss8.exe ../condor_k2/job.condor ../condor_k2/script ./
     # create a job.sh file that is used to submit the job to a cluster
     # if EOT has quotes ("") round it that means it will NOT expand variable names
     # in order to set an unique name for our run we have to expand the $folder_name variable 
@@ -101,8 +102,8 @@ do(
 	#PBS -N nessy${folder_name}
 	#PBS -M cernetic@mps.mpg.de
 	#PBS -j oe
-	#PBS -l nodes=${NODE}:ppn=48
-	#PBS -l walltime=1:00:00
+	#PBS -l nodes=1:ppn=1
+	#PBS -l walltime=10:00:00
 	EOT
 	cat >> job.sh <<- "EOT"
 
@@ -127,17 +128,17 @@ do(
 	# start your job
 	EOT
 	cat >> job.sh <<- EOT
-	export NODE_NUMBER=${NODE}
+	export NODE_NUMBER=1
 	EOT
 	cat >> job.sh <<- "EOT"
-	export MAX_PROC=48
+	export MAX_PROC=1
 	
-	fioss_do2  800 10 9200 > nohup
-	python ~/Documents/sorting/lopa-sorting/mergeMdisp.py mdisp/ spectra
+	fioss_do2 800 10 9200 > nohup
+	python ~/Documents/sorting/lopa-sorting/mergeMdisp.py mdisp/ nessy_lines
 	# unload module(s)
 	module unload intel
 	EOT
-    qsub job.sh # submit the job to the cluster
+    #qsub job.sh # submit the job to the cluster
   else
     echo "Problem with atmosphere" "$file"
     cd .. || exit

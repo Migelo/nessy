@@ -93,7 +93,7 @@ fi
   fi
   ## move the resulting mdisp lopa title files into its corresponding directory
   [[ -d mdisp ]] && mv  [0-9]*.mdisp mdisp || true
-#  [[ -d lopa  ]] && mv  [0-9]*.lopa  lopa  || true
+  [[ -d lopa  ]] && mv  [0-9]*.lopa  lopa  || true
   [[ -d title ]] && mv  [0-9]*.title title || true
   [[ -d tau ]] && mv  [0-9]*.tau tau || true
   ## If failed, move the control file to the output directory
@@ -242,7 +242,7 @@ wait
 rmdir "$CTRL" &> /dev/null || true
 rm "$CTRL"-wd || true
 echo removing ctrl folders
-fioss_mv_results $(find . -maxdepth 1 -name 'JOB*' -printf '%P\n') .
+fioss_mv_results_w_lopa $(find . -maxdepth 1 -name 'JOB*' -printf '%P\n') .
 
 A=1
 for A in JOB-*; do

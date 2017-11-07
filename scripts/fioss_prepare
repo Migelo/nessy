@@ -90,7 +90,7 @@ pwd
 #	mv radiol  RADIOL
 
 #     ${ORIG_COSI}/RADIOCL \
-$CP  ${ORIG_COSI}/TABLE   ./ 
+$CP  ${ORIG_COSI}/FAL_VD   ./ 
 $CP  ${ORIG_COSI}/MODFILE  ./
 $CP  ${ORIG_COSI}/FGRID	   ./
 $CP  ${ORIG_COSI}/DATOM	   ./

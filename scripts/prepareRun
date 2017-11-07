@@ -78,7 +78,6 @@ do(
   echo 'Creating' "$folder_name"
   cp -r hminus/template hminus/"$folder_name" # create the hminus folder for this atmosphere
   cp "$file" hminus/"$folder_name"/FAL_VD # copy and rename atmosphere file
-  echo 'lte' > hminus/"$folder_name"/fort.99 # set hminus.exe parameters 
   cd hminus/"$folder_name"/ || exit
   ./hminus.exe # run hminus
   a=$(cat fort.99) # check the exit status
@@ -102,8 +101,8 @@ do(
 	#PBS -N nessy${folder_name}
 	#PBS -M cernetic@mps.mpg.de
 	#PBS -j oe
-	#PBS -l nodes=${NODE}:ppn=48
-	#PBS -l walltime=1:00:00
+	#PBS -l nodes=1:ppn=48
+	#PBS -l walltime=7:00:00
 	EOT
 	cat >> job.sh <<- "EOT"
 
@@ -128,13 +127,14 @@ do(
 	# start your job
 	EOT
 	cat >> job.sh <<- EOT
-	export NODE_NUMBER=${NODE}
+	export NODE_NUMBER=1
 	EOT
 	cat >> job.sh <<- "EOT"
 	export MAX_PROC=48
 	
-	fioss_do2 1000 10 9000 > nohup
-	
+	fioss_do2 100 10 12000 > nohup
+    python /home/cernetic/Documents/sorting/lopa-sorting/mergeLopa.py lopa/
+	python /scratch/cernetic/AtmosphericParameters/reduce.py /scratch/cernetic/testRun/bins_veronika /scratch/cernetic/AtmosphericParameters/subBinsk 1
 	# unload module(s)
 	module unload intel
 	EOT

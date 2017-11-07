@@ -41,24 +41,6 @@ do(
 	fioss_do2 800 10 21000 > nohup
 	wait
 	
-	cd lopa || exit
-	for f in ???.lopa;do
-	mv "$f" 00"$f"
-	done
-	for f in ????.lopa;do
-	mv "$f" 0"$f"
-	done
-
-	cd ../mdisp || exit
-	for f in ???.mdisp;do
-	mv "$f" 00"$f"
-	done
-	for f in ????.mdisp;do
-	mv "$f" 0"$f"
-	done
-	cd .. || exit
-
-	
 	# unload module(s)
 	module unload $MODULES
 	module unload intel
